@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zertifikat – Stadtteilschule Winterhude</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #1a1a2e;
+  --paper: #faf8f3;
+  --accent: #2d5a3d;
+  --accent-light: #e8f0eb;
+  --border: #c8bfaa;
+  --muted: #8a7f6e;
+}
+
+body {
+  background: #e8e4dc;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ══ CONTROLS BAR ══ */
+.controls-bar {
+  background: var(--ink);
+  padding: 14px 28px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.controls-bar label {
+  color: #c8bfaa;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.controls-bar select {
+  background: #2a2a3e;
+  border: 1px solid #3a3a5e;
+  color: #faf8f3;
+  padding: 8px 30px 8px 10px;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23c8bfaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 160px;
+}
+.controls-bar select:focus { outline: none; border-color: #6a9a7a; }
+
+.btn {
+  border: none;
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: .03em;
+  transition: background .18s, opacity .18s;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: .4; cursor: default; }
+.btn-add  { background: #4a7a5a; color: white; }
+.btn-add:not(:disabled):hover { background: #3a6a4a; }
+.btn-print { background: var(--accent); color: white; margin-left: auto; }
+.btn-print:not(:disabled):hover { background: #1e3d2a; }
+
+.queue-badge {
+  background: #e8a020;
+  color: white;
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+}
+
+/* ══ LAYOUT ══ */
+.main {
+  display: flex;
+  min-height: calc(100vh - 58px);
+}
+
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: #f0ece4;
+  border-right: 1px solid #d8d0c4;
+  padding: 20px 14px;
+  overflow-y: auto;
+}
+.sidebar h3 {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.queue-empty {
+  font-size: 12px;
+  color: #aaa;
+  font-style: italic;
+  text-align: center;
+  margin-top: 24px;
+  line-height: 1.7;
+}
+.queue-item {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  padding: 9px 10px;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.queue-item:hover { border-color: var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+.queue-item.active { border-color: var(--accent); background: var(--accent-light); }
+.queue-item-body { flex: 1; min-width: 0; }
+.queue-item-name { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-item-sub  { color: var(--muted); font-size: 10px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-del {
+  background: none; border: none; cursor: pointer;
+  color: #ccc; font-size: 17px; line-height: 1; padding: 0; flex-shrink: 0;
+}
+.queue-del:hover { color: #c0392b; }
+
+.preview-pane {
+  flex: 1;
+  padding: 36px 28px 60px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ══ CERTIFICATE (screen) ══ */
+.certificate {
+  background: var(--paper);
+  border: 2px solid var(--border);
+  box-shadow: 0 8px 40px rgba(0,0,0,.16), inset 0 0 0 5px var(--paper), inset 0 0 0 6px var(--border);
+  padding: 46px 54px 40px;
+  position: relative;
+  font-family: 'Crimson Pro', Georgia, serif;
+  width: 100%;
+  max-width: 700px;
+}
+.certificate::before, .certificate::after {
+  content: '✦'; position: absolute; font-size: 16px; color: var(--border);
+}
+.certificate::before { top: 16px; left: 20px; }
+.certificate::after  { bottom: 16px; right: 20px; }
+
+.cert-header { text-align: center; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1.5px solid var(--border); }
+.cert-school { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.cert-title  { font-size: 48px; font-weight: 600; color: var(--ink); line-height: 1; }
+
+.name-class-row { display: flex; align-items: baseline; gap: 16px; margin: 22px 0 18px; }
+.name-line { flex: 1; border-bottom: 1.5px dotted #999; min-width: 0; height: 38px; display: flex; align-items: flex-end; padding-bottom: 4px; font-size: 26px; font-style: italic; color: var(--accent); }
+.name-placeholder { color: #bbb; font-style: italic; font-size: 16px; }
+.class-inline { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; flex-shrink: 0; }
+.class-label { font-size: 14px; color: var(--muted); }
+.class-value { font-size: 22px; font-weight: 600; color: var(--ink); min-width: 50px; border-bottom: 1.5px dotted #999; padding-bottom: 2px; font-style: italic; }
+
+.cert-intro    { font-size: 14px; color: var(--muted); margin-bottom: 3px; text-align: center; }
+.cert-module-title { font-size: 28px; font-weight: 600; color: var(--ink); line-height: 1.2; margin-bottom: 4px; text-align: center; }
+.cert-subtitle { font-size: 15px; font-style: italic; color: var(--muted); margin-bottom: 4px; text-align: center; }
+.cert-completed { font-size: 14px; color: var(--muted); margin-bottom: 12px; text-align: center; }
+
+.topics { margin: 0 0 16px; padding: 0; list-style: none; }
+.topics li { display: flex; align-items: flex-start; gap: 9px; font-size: 14px; padding: 4px 0; border-bottom: 1px solid #ede8df; color: var(--ink); cursor: pointer; }
+.topics li:last-child { border-bottom: none; }
+.topics li.section-heading { font-weight:600; font-size:13px; background:var(--accent-light); padding:4px 8px; border-bottom:none; cursor:default; border-radius:3px; margin-top:4px; }
+.topics li.jn-header { font-weight:600; font-size:12px; color:var(--muted); cursor:default; padding:2px 0; gap:0; }
+.topics li.jn-header .jn-col { width:36px; text-align:center; flex-shrink:0; }
+.topics li.jn-row { gap:0; }
+.topics li.jn-row .jn-text { flex:1; font-size:13px; padding-right:4px; }
+.topics li.jn-row .jn-cb { width:32px; flex-shrink:0; text-align:center; }
+.sec-icon { font-style:normal; }
+.sonstiges-line { font-size:13px; margin:6px 0 10px; color:var(--ink); }
+.sonstiges-line .thema-input { min-width:220px; }
+.topic-cb { width: 14px; height: 14px; border: 1.5px solid #aaa; flex-shrink: 0; margin-top: 2px; background: white; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--accent); font-weight: 700; }
+.topic-cb.checked { background: var(--accent-light); border-color: var(--accent); }
+
+.checkboxes { margin: 12px 0 18px; display: flex; flex-direction: column; gap: 9px; }
+.cb-row { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--ink); line-height: 1.4; }
+.cb-box { width: 15px; height: 15px; border: 1.5px solid #888; flex-shrink: 0; margin-top: 2px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--accent); font-weight: 700; }
+.cb-box.checked { background: var(--accent-light); border-color: var(--accent); }
+
+.points-input {
+  border: none; border-bottom: 1.5px solid #aaa; background: transparent;
+  width: 54px; font-family: 'Crimson Pro', serif; font-size: 13px;
+  color: var(--ink); text-align: center; outline: none; padding: 0 2px 1px; margin: 0 4px;
+}
+.points-input:focus { border-bottom-color: var(--accent); }
+
+.themenzeile {
+  font-size: 14px; color: var(--ink); margin-bottom: 12px;
+  display: flex; align-items: baseline; gap: 4px;
+}
+.thema-line { flex: 1; }
+.thema-input {
+  border: none; border-bottom: 1.5px solid #aaa; background: transparent;
+  width: 100%; font-family: 'Crimson Pro', serif; font-size: 14px; font-style: italic;
+  color: var(--accent); outline: none; padding: 0 2px 2px;
+}
+.thema-input:focus { border-bottom-color: var(--accent); }
+
+.cert-footer { display: flex; justify-content: space-between; margin-top: 22px; padding-top: 16px; border-top: 1.5px solid var(--border); gap: 40px; }
+.footer-field { flex: 1; font-size: 13px; color: var(--muted); }
+.footer-field strong { display: block; font-size: 14px; font-weight: 400; border-bottom: 1px solid #bbb; padding-bottom: 4px; margin-top: 4px; font-style: italic; }
+
+.cert-meta { margin-top: 18px; font-family: 'DM Sans', sans-serif; font-size: 10px; color: var(--muted); display: flex; justify-content: space-between; align-items: flex-end; }
+.cert-meta address { font-style: normal; line-height: 1.7; }
+.cert-logo { width: 46px; height: 46px; border-radius: 50%; background: var(--ink); color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-direction: column; line-height: 1.1; text-align: center; }
+
+/* ══ PRINT ══ */
+#printContainer { display: none; }
+
+@media print {
+  body > *:not(#printContainer) { display: none !important; }
+  #printContainer { display: block !important; }
+
+  .print-page {
+    page-break-after: always;
+    page-break-inside: avoid;
+    padding: 12mm 14mm;
+  }
+  .print-page:last-child { page-break-after: avoid; }
+
+  .print-cert {
+    border: 2px solid #c8bfaa;
+    padding: 40px 50px 36px;
+    position: relative;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 14px;
+  }
+  .print-cert::before { content: '✦'; position: absolute; top: 14px; left: 18px; font-size: 15px; color: #c8bfaa; }
+  .print-cert::after  { content: '✦'; position: absolute; bottom: 14px; right: 18px; font-size: 15px; color: #c8bfaa; }
+
+  .print-cert .cert-header   { text-align: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1.5px solid #c8bfaa; }
+  .print-cert .cert-school   { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: #2d5a3d; margin-bottom: 3px; }
+  .print-cert .cert-title    { font-size: 44px; font-weight: 600; color: #1a1a2e; line-height: 1; }
+  .print-cert .name-class-row { display: flex; align-items: baseline; gap: 14px; margin: 20px 0 16px; }
+  .print-cert .name-line     { flex: 1; border-bottom: 1.5px dotted #999; height: 36px; display: flex; align-items: flex-end; padding-bottom: 3px; font-size: 24px; font-style: italic; color: #2d5a3d; }
+  .print-cert .class-inline  { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+  .print-cert .class-label   { font-size: 13px; color: #8a7f6e; }
+  .print-cert .class-value   { font-size: 20px; font-weight: 600; border-bottom: 1.5px dotted #999; padding-bottom: 2px; font-style: italic; }
+  .print-cert .cert-intro    { font-size: 13px; color: #8a7f6e; text-align: center; margin-bottom: 3px; }
+  .print-cert .cert-module-title { font-size: 26px; font-weight: 600; text-align: center; margin-bottom: 4px; line-height: 1.2; }
+  .print-cert .cert-subtitle { font-size: 14px; font-style: italic; color: #8a7f6e; text-align: center; margin-bottom: 4px; }
+  .print-cert .cert-completed { font-size: 13px; color: #8a7f6e; text-align: center; margin-bottom: 12px; }
+  .print-cert .topics        { list-style: none; padding: 0; margin-bottom: 14px; }
+  .print-cert .topics li     { display: flex; gap: 8px; font-size: 13px; padding: 3px 0; border-bottom: 1px solid #ede8df; }
+  .print-cert .topics li:last-child { border-bottom: none; }
+  .print-cert .topic-cb      { width: 13px; height: 13px; border: 1.5px solid #aaa; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #2d5a3d; font-weight: 700; }
+  .print-cert .topic-cb.checked { background: #e8f0eb; border-color: #2d5a3d; }
+  .print-cert .checkboxes    { margin: 12px 0 16px; display: flex; flex-direction: column; gap: 8px; }
+  .print-cert .cb-row        { display: flex; gap: 8px; font-size: 12px; line-height: 1.4; align-items: flex-start; }
+  .print-cert .cb-box        { width: 14px; height: 14px; border: 1.5px solid #888; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #2d5a3d; font-weight: 700; }
+  .print-cert .cb-box.checked { background: #e8f0eb; border-color: #2d5a3d; }
+  .print-cert .points-val    { border-bottom: 1.5px solid #aaa; display: inline-block; min-width: 50px; text-align: center; }
+  .print-cert .themenzeile  { font-size: 13px; margin-bottom: 10px; display: flex; align-items: baseline; gap: 4px; }
+  .print-cert .thema-line   { flex: 1; border-bottom: 1.5px solid #aaa; min-width: 200px; font-style: italic; color: #2d5a3d; padding-bottom: 2px; }
+  .print-cert .cert-footer   { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 14px; border-top: 1.5px solid #c8bfaa; gap: 36px; }
+  .print-cert .footer-field  { flex: 1; font-size: 12px; color: #8a7f6e; }
+  .print-cert .footer-field strong { display: block; font-size: 13px; font-weight: 400; border-bottom: 1px solid #bbb; padding-bottom: 3px; margin-top: 3px; font-style: italic; }
+  .print-cert .cert-meta     { margin-top: 16px; font-size: 9px; color: #8a7f6e; display: flex; justify-content: space-between; align-items: flex-end; }
+  .print-cert .cert-meta address { font-style: normal; line-height: 1.6; }
+  .print-cert .cert-logo     { width: 44px; height: 44px; border-radius: 50%; background: #1a1a2e; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-direction: column; line-height: 1.1; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ CONTROLS ══ -->
+<div class="controls-bar">
+  <label>Zertifikat
+    <select id="certSelect" onchange="renderPreview()">
+      <option value="0">Bewegungen und Zuordnungen</option>
+      <option value="1">Brüche multiplizieren und dividieren</option>
+      <option value="2">Plus und Minus – rationale Zahlen</option>
+      <option value="3">Winkel</option>
+      <option value="4">In welche Kiste passt mehr hinein?</option>
+      <option value="5">Dezimalzahlen</option>
+      <option value="6">Brüche addieren und subtrahieren</option>
+      <option value="7">Brüche kennenlernen</option>
+      <option value="8">Längen und Flächen</option>
+      <option value="9">Geometrische Körper</option>
+      <option value="10">Daten</option>
+      <option value="11">Der Mikrowelt auf der Spur</option>
+      <option value="12">Projektlernen</option>
+      <option value="13">Unsere Sinne</option>
+      <option value="14">Projektlernen: „im, auf, unter Wasser" (Design 1 – Klar & Blau)</option>
+      <option value="15">Projektlernen: „im, auf, unter Wasser" (Design 2 – Checkliste)</option>
+      <option value="16">Projektlernen: „im, auf, unter Wasser" (Design 3 – Unterwasser)</option>
+      <option value="17">Prozentrechnung</option>
+    </select>
+  </label>
+
+  <label>Klasse
+    <select id="classSelect" onchange="updateNames()">
+      <option value="">– wählen –</option>
+      <option value="E">5-7 E</option>
+      <option value="G">5-7 G</option>
+    </select>
+  </label>
+
+  <label>Schüler/in
+    <select id="nameSelect" onchange="onNameSelect()">
+      <option value="">– wählen –</option>
+    </select>
+  </label>
+
+  <label style="display:flex;flex-direction:column;gap:5px;">
+    <span style="color:#c8bfaa;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Manuell eingeben</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input id="manualName" type="text" placeholder="Name …" oninput="onManualInput()"
+        style="background:#2a2a40;color:#fff;border:1px solid #4a4a60;border-radius:6px;padding:6px 10px;font-size:13px;width:160px;">
+      <input id="manualClass" type="text" placeholder="Klasse …" oninput="onManualInput()"
+        style="background:#2a2a40;color:#fff;border:1px solid #4a4a60;border-radius:6px;padding:6px 10px;font-size:13px;width:80px;">
+    </div>
+  </label>
+
+  <button class="btn btn-add" onclick="addToQueue()">+ Zur Druckliste</button>
+
+  <button class="btn btn-print" id="btnPrint" onclick="printAll()" disabled>
+    🖨 Alle drucken <span class="queue-badge" id="qBadge">0</span>
+  </button>
+</div>
+
+<!-- ══ MAIN LAYOUT ══ -->
+<div class="main">
+
+  <!-- Sidebar: print queue -->
+  <div class="sidebar">
+    <h3>Druckliste</h3>
+    <div id="queueList">
+      <p class="queue-empty">Noch keine Zertifikate.<br><br>Schüler + Zertifikat wählen, dann „+ Zur Druckliste" klicken.</p>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-pane">
+    <div class="certificate" id="certBox"></div>
+  </div>
+</div>
+
+<!-- Hidden container: built fresh before each print -->
+<div id="printContainer"></div>
+
+<script>
+// ══ DATA ══
+const students = {
+  E: ["Barne Schuppius","Colin Gärtner","Cynthia Anamelechi","Eleanor Teschen",
+      "Eljano Dankowski","Finn Schmidt","Frida Gerlach","Gabriel Walcker",
+      "Jonna Retzlaff","Josephine Meyer","Justus Gül","Leandro Ahlers",
+      "Leona Vene","Lotte Höfert","Luca Lühr","Luke Salewski",
+      "Lyann Martins","Marlon Sandberg","Maxim Bakhshandeh","Mieke Schönherr",
+      "Milo Keller","Oscar Schäfner","Rune Ster","Sari Djajakusuma"],
+  G: ["Alina Blank","Coco Kluhs","Constanze Escher","Daria Zeiscke","Emil Hagen",
+      "Emil Mads Jungjohann","Emil Schön","Felan Lya Olde","Fiete Döhne",
+      "Fynn Jürgens","Hovhannes Barseghyan","Lena Petrova","Leona Behrenz",
+      "Levent Velasco Karabag","Luca Krämer","Mariia Kotliar","Maya Farhadi Zonouz",
+      "Mila Märtens","Moritz von Borstel","Pauline Berg","Sophia Petrusch",
+      "Sophie Leite de Oliveira","Til Bollwahn","Viktor Riepinskyi"]
+};
+
+const certs = [
+  { title:"Bewegungen und Zuordnungen",           subtitle:null,                    topics:["Bewegungen (mit Diagrammen)","Zuordnungen","Proportionale Zuordnungen","Dreisatz","Antiproportionale Zuordnungen","Dreisatz bei antiproportionalen Zuordnungen"] },
+  { title:"Brüche multiplizieren und dividieren", subtitle:null,                    topics:["Ich kann Brüche mit natürlichen Zahlen multiplizieren.","Ich kann Brüche miteinander multiplizieren.","Ich kann Bruchteile berechnen.","Ich kann Brüche durch natürliche Zahlen dividieren.","Ich kann durch Brüche dividieren.","Ich kann Platzhalter bei Multiplikation und Division bestimmen.","Ich kann Fehler erkennen und Rechenwege begründen."] },
+  { title:"Plus und Minus",                       subtitle:"– rationale Zahlen –",  topics:["Ich kann rationale Zahlen an der Zahlengerade ablesen und vergleichen.","Ich kann Gegenzahl und Betrag angeben.","Ich kann rationale Zahlen addieren und subtrahieren.","Ich kann rationale Zahlen multiplizieren.","Ich kann Sachaufgaben lösen und das Koordinatensystem nutzen.","Ich kann Rechenwege prüfen und Aussagen begründen."] },
+  { title:"Winkel",                               subtitle:null,                    topics:["Ich kann Winkelarten an der Gradzahl erkennen.","Ich kann Winkelarten in Zeichnungen erkennen und benennen.","Ich kann Winkelgrößen schätzen.","Ich kann Winkel mit dem Geodreieck zeichnen.","Ich kann Winkel messen.","Ich kann Winkel im Alltag bestimmen und ergänzen.","Ich kann Messfehler erkennen und Aussagen begründen."] },
+  { title:"In welche Kiste passt mehr hinein?",   subtitle:"– Volumenberechnung –", topics:["Ich kann den Rauminhalt durch Würfelzählen bestimmen.","Ich kann die Formeln für Rauminhalt und Oberfläche angeben.","Ich kann den Rauminhalt von Quader und Würfel berechnen.","Ich kann Raumeinheiten umrechnen.","Ich kann die Oberfläche und fehlende Kanten berechnen.","Ich kann Aussagen über Rauminhalt und Oberfläche begründen."] },
+  { title:"Dezimalzahlen",                        subtitle:null,                    topics:["Ich kann Dezimalzahlen in eine Stellenwerttafel eintragen.","Ich kann Brüche in Dezimalzahlen übersetzen und umgekehrt.","Ich kann Dezimalzahlen vergleichen.","Ich kann Dezimalzahlen am Zahlenstrahl ablesen und eintragen.","Ich kann Kommazahlen schriftlich addieren und subtrahieren.","Ich kann Kommazahlen multiplizieren und dividieren (im Kopf und schriftlich).","Ich kann Aussagen über Dezimalzahlen begründen und Rätsel lösen."] },
+  { title:"Brüche addieren und subtrahieren",     subtitle:null,                    topics:["Ich kann Brüche erweitern und kürzen.","Ich kann gleichnamige Brüche addieren und subtrahieren.","Ich kann ungleichnamige Brüche addieren und subtrahieren.","Ich kann Fehler finden und Rechenwege begründen."] },
+  { title:"Brüche kennenlernen",                  subtitle:null,                    topics:["Bruchteile mit Brüchen beschreiben","Brüche darstellen","Brüche verfeinern und vergröbern","Brüche erweitern und kürzen"] },
+  { title:"Längen und Flächen",                   subtitle:null,                    topics:["Ich kann den Umfang von Rechteck, Quadrat und Dreieck berechnen.","Ich kann den Flächeninhalt von Rechteck und Quadrat berechnen.","Ich kann Flächeninhalt und Umfang durch Kästchenzählen bestimmen.","Ich kann Flächeneinheiten ordnen und umrechnen.","Ich kann fehlende Seiten berechnen und Sachaufgaben lösen.","Ich kann Aussagen über Flächen und Umfang begründen."] },
+  { title:"Geometrische Körper",                  subtitle:null,                    topics:["Ich kann geometrische Körper benennen.","Ich kann Ecken, Kanten und Flächen von Körpern bestimmen.","Ich kann Körper im Alltag erkennen.","Ich kann einen Würfel im Schrägbild zeichnen.","Ich kann Würfelnetze erkennen.","Ich kann parallele und senkrechte Kanten und Geraden erkennen und zeichnen.","Ich kann Aussagen über Körper begründen."] },
+  { title:"Daten",                                subtitle:null,                    topics:["Ich kann eine Strichliste und eine Häufigkeitstabelle erstellen.","Ich kann Werte aus Diagrammen ablesen und Aussagen prüfen.","Ich kann ein Balkendiagramm zeichnen.","Ich kann Fehler in Diagrammen finden.","Ich kann den Durchschnitt berechnen.","Ich kann mit dem Durchschnitt argumentieren."] },
+  { title:"Der Mikrowelt auf der Spur",           subtitle:"– NW-Baustein –",       hideCbs:true, topics:["Ich kann die Teile eines Mikroskops benennen und es richtig nutzen.","Ich kann Nasspräparate herstellen.","Ich kann ein mikroskopisches Bild zeichnen und beschriften."] },
+  { title:"Projektlernen",                        subtitle:null,                    hideCbs:true, themenzeile:true, topics:["Einen Projektvertrag erstellt (mit Zeitplan und Verteilung der Aufgaben)","Relevante Forscherfragen gestellt","Gründlich recherchiert und mehr als eine Quelle angegeben","Einen Außentermin wahrgenommen oder Expert*innen befragt","Ein Produkt erstellt und in den Vortrag eingefügt","Das Thema präsentiert: frei und laut genug gesprochen","Eine anschauliche und aussagekräftige Präsentation gezeigt","Einen roten Faden deutlich gemacht (Aufbau)","Die Rechtschreibung beachtet","Nachfragen kenntnisreich beantwortet","Den Abgabetermin eingehalten"] },
+  { title:"Unsere Sinne",                         subtitle:"– NW-Baustein –",       hideCbs:true, topics:["Ich kann den Aufbau und die Funktion eines Sinnes erklären.","Ich habe zu meinem Sinn ein Experiment entwickelt und durchgeführt.","Ich habe eine Präsentation zu meinem Sinn gehalten."] },
+  { title:'Projektlernen: „im, auf, unter Wasser“', subtitle:null, hideCbs:true, themenzeile:true, sonstiges:true, design:'blau',
+    sections:[
+      { heading:'1  So hast du gearbeitet', icon:'', items:["Du hast einen Projektvertrag gemacht (Zeitplan + Aufgaben).","Du hast deinen Abgabetermin eingehalten."] },
+      { heading:'2  So hast du geforscht',  icon:'', items:["Du hast gute Forscherfragen gestellt.","Du hast gründlich recherchiert, mehr als eine Quelle benutzt und deine Quellen angegeben.","Du hast einen Außentermin besucht oder Expert*innen befragt.","Du hast ein Produkt gebaut oder erstellt und in deinen Vortrag eingebaut."] },
+      { heading:'3  So hast du präsentiert', icon:'', items:["Du hast frei und laut genug gesprochen.","Deine Präsentation war anschaulich (Bilder, Videos, Texte als Stichpunkte).","Man konnte einen roten Faden erkennen (guter Aufbau).","Du hast auf die Rechtschreibung geachtet.","Du konntest Fragen mit deinem Wissen gut beantworten."] }
+    ], topics:[] },
+  { title:'Projektlernen: „im, auf, unter Wasser“', subtitle:null, hideCbs:true, themenzeile:true, sonstiges:true, design:'checkliste',
+    sections:[
+      { heading:'1. So hast du gearbeitet', icon:'', items:["Du hast einen Projektvertrag gemacht (Zeitplan + Aufgaben).","Du hast deinen Abgabetermin eingehalten."] },
+      { heading:'2. So hast du geforscht',  icon:'', items:["Du hast gute Forscherfragen gestellt.","Du hast gründlich recherchiert, mehr als eine Quelle benutzt und deine Quellen angegeben.","Du hast einen Außentermin besucht oder Expert*innen befragt.","Du hast ein Produkt gebaut oder erstellt und in deinen Vortrag eingebaut."] },
+      { heading:'3. So hast du präsentiert', icon:'', items:["Du hast frei und laut genug gesprochen.","Deine Präsentation war anschaulich (Bilder, Videos, Texte als Stichpunkte).","Man konnte einen roten Faden erkennen (guter Aufbau).","Du hast auf die Rechtschreibung geachtet.","Du konntest Fragen mit deinem Wissen gut beantworten."] }
+    ], topics:[] },
+  { title:'Projektlernen: „im, auf, unter Wasser“', subtitle:null, hideCbs:true, themenzeile:true, sonstiges:true, design:'unterwasser',
+    sections:[
+      { heading:'So hast du gearbeitet', icon:'🤝', items:["Du hast einen Projektvertrag gemacht (Zeitplan + Aufgaben).","Du hast deinen Abgabetermin eingehalten."] },
+      { heading:'So hast du geforscht',  icon:'🔍', items:["Du hast gute Forscherfragen gestellt.","Du hast gründlich recherchiert, mehr als eine Quelle benutzt und deine Quellen angegeben.","Du hast einen Außentermin besucht oder Expert*innen befragt.","Du hast ein Produkt gebaut oder erstellt und in deinen Vortrag eingebaut."] },
+      { heading:'So hast du präsentiert', icon:'🎤', items:["Du hast frei und laut genug gesprochen.","Deine Präsentation war anschaulich (Bilder, Videos, Texte als Stichpunkte).","Man konnte einen roten Faden erkennen (guter Aufbau).","Du hast auf die Rechtschreibung geachtet.","Du konntest Fragen mit deinem Wissen gut beantworten."] }
+    ], topics:[] }
+,
+  { title:"Prozentrechnung",                       subtitle:null,                    topics:["Ich kann Brüche und Dezimalzahlen in Prozent angeben (und umgekehrt).","Ich kann Prozentwert, Grundwert und Prozentsatz berechnen.","Ich kann Anteile in Grafiken in Prozent auswerten.","Ich kann Angebote vergleichen und Aussagen begründen."] }
+];
+
+// ══ STATE ══
+let queue = [];
+let preview = { topicChecks:[], cb0:false, cb1:false, points:'', thema:'' };
+
+function today() {
+  return new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+// ══ NAMES ══
+function updateNames() {
+  const cls = document.getElementById('classSelect').value;
+  const sel = document.getElementById('nameSelect');
+  sel.innerHTML = '<option value="">– wählen –</option>';
+  if (cls && students[cls]) {
+    students[cls].forEach(n => {
+      const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+    });
+  }
+  // clear manual fields when switching class dropdown
+  document.getElementById('manualName').value = '';
+  document.getElementById('manualClass').value = '';
+  preview = { topicChecks:[], cb0:false, cb1:false, points:'', thema:'' };
+  renderPreview();
+}
+
+function onNameSelect() {
+  // when dropdown name selected, clear manual fields
+  document.getElementById('manualName').value = '';
+  document.getElementById('manualClass').value = '';
+  renderPreview();
+}
+
+function onManualInput() {
+  // when typing manually, clear dropdown selections
+  document.getElementById('nameSelect').value = '';
+  renderPreview();
+}
+
+// ══ CERT HTML (shared by preview + print) ══
+function buildCertHTML(certIdx, name, cls, state, forPrint) {
+  const cert = certs[certIdx];
+
+  const nameHTML = name
+    ? `<span style="font-style:italic;color:${forPrint?'#2d5a3d':'var(--accent)'}">${name}</span>`
+    : `<span class="name-placeholder">Name wählen …</span>`;
+  const classDisplay = cls ? (cls === 'E' || cls === 'G' ? `5-7 ${cls}` : cls) : '5-7 ………';
+
+  const introText = cert.subtitle && cert.subtitle.includes('NW') ? 'hat den NW-Baustein'
+                  : (cert.title === 'Projektlernen' || cert.title.startsWith('Projektlernen:')) ? 'hat den Baustein'
+                  : 'hat den Mathematik-Baustein';
+
+  let topicsHTML = '';
+  if (cert.sections && cert.sections.length) {
+    let globalIdx = 0;
+    if (cert.design === 'checkliste') {
+      cert.sections.forEach(sec => {
+        topicsHTML += `<li class="section-heading">${sec.heading}</li>`;
+        topicsHTML += '<li class="jn-header"><span class="jn-text"></span><span class="jn-col">ja</span><span class="jn-col">nein</span></li>';
+        sec.items.forEach(t => {
+          const i = globalIdx++;
+          const chkJ = state.topicChecks[i] === 'ja'   ? ' checked' : '';
+          const chkN = state.topicChecks[i] === 'nein' ? ' checked' : '';
+          const clickJ = forPrint ? '' : `onclick="toggleTopicJN(${i},'ja')"`;
+          const clickN = forPrint ? '' : `onclick="toggleTopicJN(${i},'nein')"`;
+          topicsHTML += `<li class="jn-row"><span class="jn-text">${t}</span>` +
+            `<div class="topic-cb jn-cb${chkJ}" ${clickJ}>${chkJ ? '\u2713' : ''}</div>` +
+            `<div class="topic-cb jn-cb${chkN}" ${clickN}>${chkN ? '\u2713' : ''}</div></li>`;
+        });
+      });
+    } else {
+      cert.sections.forEach(sec => {
+        const iconHtml = sec.icon ? `<span class="sec-icon">${sec.icon}</span> ` : '';
+        topicsHTML += `<li class="section-heading">${iconHtml}${sec.heading}</li>`;
+        sec.items.forEach(t => {
+          const i = globalIdx++;
+          const chk  = state.topicChecks[i] ? ' checked' : '';
+          const tick = state.topicChecks[i] ? '\u2713' : '';
+          const click = forPrint ? '' : `onclick="toggleTopic(${i})"`;
+          topicsHTML += `<li ${click}><div class="topic-cb${chk}">${tick}</div><span>${t}</span></li>`;
+        });
+      });
+    }
+  } else {
+    topicsHTML = cert.topics.map((t, i) => {
+      const chk  = state.topicChecks[i] ? ' checked' : '';
+      const tick = state.topicChecks[i] ? '\u2713' : '';
+      const click = forPrint ? '' : `onclick="toggleTopic(${i})"`;
+      return `<li ${click}><div class="topic-cb${chk}">${tick}</div><span>${t}</span></li>`;
+    }).join('');
+  }
+  const sonstigesHTML = cert.sonstiges ? `<div class="sonstiges-line">Sonstiges: ${forPrint
+    ? (state.sonstiges || '')
+    : `<input class="thema-input" type="text" placeholder="..." value="${(state.sonstiges||'')}" oninput="preview.sonstiges=this.value" onclick="event.stopPropagation()">`
+  }</div>` : '';
+
+  const themenzeileHTML = cert.themenzeile ? `
+    <div class="themenzeile">
+      Thema:&nbsp;<span class="thema-line">${forPrint
+        ? (state.thema || '')
+        : `<input class="thema-input" type="text" placeholder="Thema eintragen …" value="${state.thema||''}" oninput="preview.thema=this.value" onclick="event.stopPropagation()">`
+      }</span>
+    </div>` : '';
+
+  const ptsHTML = forPrint
+    ? `<span class="points-val">${state.points || ''}</span>`
+    : `<input class="points-input" type="text" placeholder="Punkte" value="${state.points}"
+         oninput="preview.points=this.value" onclick="event.stopPropagation()">`;
+
+  const cb0c = state.cb0 ? ' checked' : ''; const cb0t = state.cb0 ? '✓' : '';
+  const cb1c = state.cb1 ? ' checked' : ''; const cb1t = state.cb1 ? '✓' : '';
+  const cb0click = forPrint ? '' : `onclick="toggleCb(0)"`;
+  const cb1click = forPrint ? '' : `onclick="toggleCb(1)"`;
+
+  const checkboxesHTML = cert.hideCbs ? '' : `
+    <div class="checkboxes">
+      <div class="cb-row">
+        <div class="cb-box${cb0c}" ${cb0click}>${cb0t}</div>
+        <span>Um deine Kenntnisse zu dokumentieren, hast du deine Arbeitsmaterialien abgegeben und deine Kenntnisse in einem Test nachgewiesen.&nbsp;${ptsHTML}</span>
+      </div>
+      <div class="cb-row">
+        <div class="cb-box${cb1c}" ${cb1click}>${cb1t}</div>
+        <span>Du hast deine Kenntnisse im Rahmen einer Präsentation nachgewiesen.</span>
+      </div>
+    </div>`;
+
+  return `
+    <div class="cert-header">
+      <div class="cert-school">Stadtteilschule Winterhude</div>
+      <div class="cert-title">Zertifikat</div>
+    </div>
+    <div class="name-class-row">
+      <div class="name-line">${nameHTML}</div>
+      <div class="class-inline">
+        <span class="class-label">Klasse</span>
+        <span class="class-value">${classDisplay}</span>
+      </div>
+    </div>
+    <div class="cert-intro">${introText}</div>
+    <div class="cert-module-title">${cert.title}</div>
+    ${cert.subtitle ? `<div class="cert-subtitle">${cert.subtitle}</div>` : ''}
+    ${themenzeileHTML}
+    <div class="cert-completed">erfolgreich abgeschlossen und dabei folgende Aufgaben bearbeitet:</div>
+    <ul class="topics">${topicsHTML}</ul>
+    ${sonstigesHTML}
+    ${checkboxesHTML}
+    <div class="cert-footer">
+      <div class="footer-field">Datum <strong>${today()}</strong></div>
+      <div class="footer-field">Unterschrift <strong>&nbsp;</strong></div>
+    </div>
+    <div class="cert-meta">
+      <address>Stadtteilschule Winterhude<br>Meerweinstraße 28<br>22303 Hamburg<br>040 428 984 0<br>www.sts-winterhude.de</address>
+      <div class="cert-logo">WI'R<br><span style="font-size:8px;font-weight:400">Winterhuder<br>Reformschule</span></div>
+    </div>`;
+}
+
+// ══ PREVIEW ══
+function renderPreview() {
+  const ci  = parseInt(document.getElementById('certSelect').value);
+  const manualName  = document.getElementById('manualName').value.trim();
+  const manualClass = document.getElementById('manualClass').value.trim();
+  const cls = manualClass || document.getElementById('classSelect').value;
+  const nm  = manualName  || document.getElementById('nameSelect').value;
+  const topicCount = certs[ci].sections ? certs[ci].sections.reduce((s,sec)=>s+sec.items.length,0) : certs[ci].topics.length;
+  if (preview.topicChecks.length !== topicCount) {
+    preview.topicChecks = new Array(topicCount).fill(false);
+  }
+  document.getElementById('certBox').innerHTML = buildCertHTML(ci, nm, cls, preview, false);
+}
+
+function toggleTopic(i) {
+  preview.topicChecks[i] = !preview.topicChecks[i];
+  const els = document.querySelectorAll('#certBox .topic-cb');
+  if (els[i]) { els[i].classList.toggle('checked', preview.topicChecks[i]); els[i].textContent = preview.topicChecks[i] ? '✓' : ''; }
+}
+
+function toggleTopicJN(i, val) {
+  preview.topicChecks[i] = preview.topicChecks[i] === val ? false : val;
+  renderPreview();
+}
+
+function toggleCb(i) {
+  if (i===0) preview.cb0 = !preview.cb0; else preview.cb1 = !preview.cb1;
+  const val = i===0 ? preview.cb0 : preview.cb1;
+  const els = document.querySelectorAll('#certBox .cb-box');
+  if (els[i]) { els[i].classList.toggle('checked', val); els[i].textContent = val ? '✓' : ''; }
+}
+
+// ══ QUEUE ══
+function addToQueue() {
+  const ci  = parseInt(document.getElementById('certSelect').value);
+  const manualName  = document.getElementById('manualName').value.trim();
+  const manualClass = document.getElementById('manualClass').value.trim();
+  const cls = manualClass || document.getElementById('classSelect').value;
+  const nm  = manualName  || document.getElementById('nameSelect').value;
+  if (!nm) { alert('Bitte zuerst einen Schüler / eine Schülerin auswählen.'); return; }
+
+  // save a snapshot of the current preview state
+  queue.push({
+    id: Date.now(), certIdx: ci, name: nm, cls,
+    state: { topicChecks: [...preview.topicChecks], cb0: preview.cb0, cb1: preview.cb1, points: preview.points, thema: preview.thema||'', sonstiges: preview.sonstiges||'' }
+  });
+
+  // reset for next entry
+  const tc = certs[ci].sections ? certs[ci].sections.reduce((s,sec)=>s+sec.items.length,0) : certs[ci].topics.length;
+  preview = { topicChecks: new Array(tc).fill(false), cb0:false, cb1:false, points:'', thema:'', sonstiges:'' };
+
+  renderQueue();
+}
+
+function removeFromQueue(id) {
+  queue = queue.filter(q => q.id !== id);
+  renderQueue();
+}
+
+function previewFromQueue(id) {
+  const item = queue.find(q => q.id === id);
+  if (!item) return;
+  document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('qi-' + id); if (el) el.classList.add('active');
+  document.getElementById('certBox').innerHTML = buildCertHTML(item.certIdx, item.name, item.cls, item.state, false);
+}
+
+function renderQueue() {
+  const list  = document.getElementById('queueList');
+  const badge = document.getElementById('qBadge');
+  const btn   = document.getElementById('btnPrint');
+  badge.textContent = queue.length;
+  btn.disabled = queue.length === 0;
+
+  if (!queue.length) {
+    list.innerHTML = '<p class="queue-empty">Noch keine Zertifikate.<br><br>Schüler + Zertifikat wählen, dann „+ Zur Druckliste" klicken.</p>';
+    return;
+  }
+
+  list.innerHTML = queue.map(item => `
+    <div class="queue-item" id="qi-${item.id}" onclick="previewFromQueue(${item.id})">
+      <div class="queue-item-body">
+        <div class="queue-item-name">${item.name}</div>
+        <div class="queue-item-sub">${certs[item.certIdx].title}</div>
+        <div class="queue-item-sub" style="color:#bbb">${item.cls ? '5-7 '+item.cls : ''}</div>
+      </div>
+      <button class="queue-del" onclick="event.stopPropagation();removeFromQueue(${item.id})" title="Entfernen">×</button>
+    </div>`).join('');
+}
+
+// ══ PRINT ══
+function printAll() {
+  if (!queue.length) return;
+
+  const pages = queue.map(item =>
+    `<div class="print-page"><div class="print-cert">${buildCertHTML(item.certIdx, item.name, item.cls, item.state, true)}</div></div>`
+  ).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zertifikate drucken</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: white; font-family: 'DM Sans', sans-serif; }
+
+.no-print {
+  background: #1a1a2e;
+  color: white;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+.no-print button {
+  background: #2d5a3d;
+  color: white;
+  border: none;
+  padding: 9px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+}
+.no-print .hint {
+  color: #c8bfaa;
+  font-size: 12px;
+}
+
+.print-page {
+  padding: 12mm 14mm;
+  page-break-after: always;
+}
+.print-page:last-child { page-break-after: avoid; }
+
+.print-cert {
+  border: 2px solid #c8bfaa;
+  padding: 40px 50px 36px;
+  position: relative;
+  font-family: 'Crimson Pro', Georgia, serif;
+}
+.print-cert::before { content:'✦'; position:absolute; top:14px; left:18px; font-size:15px; color:#c8bfaa; }
+.print-cert::after  { content:'✦'; position:absolute; bottom:14px; right:18px; font-size:15px; color:#c8bfaa; }
+
+.cert-header   { text-align:center; margin-bottom:20px; padding-bottom:14px; border-bottom:1.5px solid #c8bfaa; }
+.cert-school   { font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px; letter-spacing:.1em; text-transform:uppercase; color:#2d5a3d; margin-bottom:3px; }
+.cert-title    { font-size:44px; font-weight:600; color:#1a1a2e; line-height:1; }
+.name-class-row{ display:flex; align-items:baseline; gap:14px; margin:20px 0 16px; }
+.name-line     { flex:1; border-bottom:1.5px dotted #999; height:36px; display:flex; align-items:flex-end; padding-bottom:3px; font-size:24px; font-style:italic; color:#2d5a3d; }
+.class-inline  { display:flex; align-items:baseline; gap:5px; white-space:nowrap; }
+.class-label   { font-size:13px; color:#8a7f6e; }
+.class-value   { font-size:20px; font-weight:600; border-bottom:1.5px dotted #999; padding-bottom:2px; font-style:italic; }
+.cert-intro    { font-size:13px; color:#8a7f6e; text-align:center; margin-bottom:3px; }
+.cert-module-title { font-size:26px; font-weight:600; text-align:center; margin-bottom:4px; line-height:1.2; }
+.cert-subtitle { font-size:14px; font-style:italic; color:#8a7f6e; text-align:center; margin-bottom:4px; }
+.cert-completed{ font-size:13px; color:#8a7f6e; text-align:center; margin-bottom:12px; }
+.topics        { list-style:none; padding:0; margin-bottom:14px; }
+.topics li     { display:flex; gap:8px; font-size:13px; padding:3px 0; border-bottom:1px solid #ede8df; align-items:flex-start; }
+.topics li:last-child { border-bottom:none; }
+.topic-cb      { width:13px; height:13px; border:1.5px solid #aaa; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; font-size:8px; color:#2d5a3d; font-weight:700; }
+.topic-cb.checked { background:#e8f0eb; border-color:#2d5a3d; }
+.checkboxes    { margin:12px 0 16px; display:flex; flex-direction:column; gap:8px; }
+.cb-row        { display:flex; gap:8px; font-size:12px; line-height:1.4; align-items:flex-start; }
+.cb-box        { width:14px; height:14px; border:1.5px solid #888; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#2d5a3d; font-weight:700; }
+.cb-box.checked{ background:#e8f0eb; border-color:#2d5a3d; }
+.points-val    { border-bottom:1.5px solid #aaa; display:inline-block; min-width:50px; text-align:center; }
+.cert-footer   { display:flex; justify-content:space-between; margin-top:20px; padding-top:14px; border-top:1.5px solid #c8bfaa; gap:36px; }
+.footer-field  { flex:1; font-size:12px; color:#8a7f6e; }
+.footer-field strong { display:block; font-size:13px; font-weight:400; border-bottom:1px solid #bbb; padding-bottom:3px; margin-top:3px; font-style:italic; }
+.cert-meta     { margin-top:16px; font-size:9px; color:#8a7f6e; display:flex; justify-content:space-between; align-items:flex-end; font-family:'DM Sans',sans-serif; }
+.cert-meta address { font-style:normal; line-height:1.6; }
+.cert-logo     { width:44px; height:44px; border-radius:50%; background:#1a1a2e; color:white; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; flex-direction:column; line-height:1.1; text-align:center; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-page { padding: 8mm 10mm; }
+}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <button onclick="window.print()">🖨 Drucken</button>
+  <span class="hint">iPad: Teilen-Symbol → „Drucken" — oder den Button oben nutzen</span>
+</div>
+${pages}
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
+// ══ INIT ══
+renderPreview();
+renderQueue();
+</script>
+</body>
+</html>
